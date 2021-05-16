@@ -13,17 +13,16 @@ require __DIR__ . '/../vendor/autoload.php';
 require_once './db/AccesoDatos.php';
 // require_once './middlewares/Logger.php';
 
-require_once './controllers/UsuarioController.php';
+require_once './controllers/PedidoController.php';
 
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
 
 // Instantiate App
-// $app = AppFactory::create();
+$app = AppFactory::create();
 // // Set base path
 // $app->setBasePath('/app');
-$app = AppFactory::create();
 $app->setBasePath('/LaComanda/app');
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
@@ -34,11 +33,12 @@ $app->addErrorMiddleware(true, true, true);
 
 
 // Routes
-$app->group('/usuarios', function (RouteCollectorProxy $group) {
-    $group->get('[/]', \UsuarioController::class . ':TraerTodos');
-    $group->get('/{usuario}', \UsuarioController::class . ':TraerUno');
-    $group->post('[/]', \UsuarioController::class . ':CargarUno');
-  });
+$app->group('/pedidos', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \PedidoController::class . ':TraerTodos');
+  $group->get('/{codigoPedido}', \PedidoController::class . ':TraerUno');
+  $group->post('[/]', \PedidoController::class . ':CargarUno');
+  $group->put('[/]', \PedidoController::class . ':ModificarUno');
+});
 
 $app->get('[/]', function (Request $request, Response $response) {    
     $response->getBody()->write("Slim Framework 4 PHP");
