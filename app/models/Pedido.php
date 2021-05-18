@@ -96,7 +96,7 @@ class Pedido
     public static function TraerIdMesa($codigoMesa)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id FROM mesas WHERE codigo_mesa = :codigo");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id FROM mesasdisponibles WHERE codigo_mesa = :codigo");
         $consulta->bindValue(':codigo', $codigoMesa, PDO::PARAM_STR);
         $consulta->execute();
         $objetos = $consulta->fetchAll(PDO::FETCH_OBJ);
