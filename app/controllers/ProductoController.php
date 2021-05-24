@@ -1,5 +1,6 @@
 <?php
 require_once './models/Producto.php';
+require_once './models/ConsultasPDO.php';
 require_once './interfaces/IApiUsable.php';
 
 class ProductoController extends Producto implements IApiUsable
@@ -9,12 +10,14 @@ class ProductoController extends Producto implements IApiUsable
       $parametros = $request->getParsedBody();
 
       $nombreProducto = $parametros['nombreProducto'];
-      $idSector = Producto::TraerIdSector($parametros['sectorDesc']); 
+      $precio = $parametros['precio'];
+      $idSector = ConsultasPdo::TraerIdSector($parametros['sectorDesc']); 
 
       // Creamos el producto
       $producto = new Producto();
       $producto->nombre_producto = $nombreProducto;
       $producto->id_sector = $idSector;
+      $producto->precio = $precio;
       $producto->crearProducto();
 
       $payload = json_encode(array("mensaje" => "Producto ". $nombreProducto ." agregado con exito"));

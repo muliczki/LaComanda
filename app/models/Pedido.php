@@ -4,34 +4,22 @@ class Pedido
 {
     public $id;
     public $codigo_pedido;
-    public $producto;
-    public $nombre_cliente;
-    public $id_estado_pedido;
-    public $id_sector;
-    //public $foto; VER
-    public $fecha_solicitud;
-    public $fecha_actualizacion;
-    public $fecha_finalizacion;
+    public $foto; 
     public $id_mesa;
-    public $precio;
+    public $id_estado_mesa;
+    public $id_cliente;
+
 
     public function crearPedido()
     {
-        date_default_timezone_set('America/Argentina/Buenos_Aires');
-        $fecha = date ("Y-m-d H:i:s");
-
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigo_pedido, producto, nombre_cliente, id_estado_pedido, id_sector, fecha_solicitud, fecha_actualizacion, id_mesa, precio) 
-        VALUES (:codigo,:producto, :nombre, :idEstado, :idSector, :fechaS, :fechaA, :idMesa, :precio)");
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigo_pedido, foto, id_mesa, id_estado_mesa, id_cliente) 
+        VALUES (:codigo, :foto, :idMesa, :idEstadoMesa, :idCliente)");
         $consulta->bindValue(':codigo', $this->codigo_pedido, PDO::PARAM_STR);
-        $consulta->bindValue(':producto', $this->producto, PDO::PARAM_STR);
-        $consulta->bindValue(':nombre', $this->nombre_cliente, PDO::PARAM_STR);
-        $consulta->bindValue(':idEstado', $this->id_estado_pedido, PDO::PARAM_INT);
-        $consulta->bindValue(':idSector', $this->id_sector, PDO::PARAM_INT);
-        $consulta->bindValue(':fechaS', $fecha, PDO::PARAM_STR);
-        $consulta->bindValue(':fechaA', $fecha, PDO::PARAM_STR);
+        $consulta->bindValue(':foto', $this->foto, PDO::PARAM_STR);
         $consulta->bindValue(':idMesa', $this->id_mesa, PDO::PARAM_INT);
-        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_INT);
+        $consulta->bindValue(':idEstadoMesa', $this->id_estado_mesa, PDO::PARAM_INT);
+        $consulta->bindValue(':idCliente', $this->id_cliente, PDO::PARAM_INT);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
@@ -40,7 +28,7 @@ class Pedido
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo_pedido, producto, nombre_cliente, id_estado_pedido, id_sector, fecha_solicitud, fecha_actualizacion, id_mesa, precio FROM pedidos");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo_pedido, foto, id_mesa, id_estado_mesa, id_cliente FROM pedidos");
         $consulta->execute();
 
         return $consulta->fetchAll(PDO::FETCH_CLASS, 'Pedido');
@@ -49,30 +37,22 @@ class Pedido
     public static function obtenerPedido($codigo)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo_pedido, producto, nombre_cliente, id_estado_pedido, id_sector, fecha_solicitud, fecha_actualizacion, id_mesa, precio FROM pedidos WHERE codigo_pedido = :codigo");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo_pedido, foto, id_mesa, id_estado_mesa, id_cliente 
+        FROM pedidos WHERE codigo_pedido = :codigo");
         $consulta->bindValue(':codigo', $codigo, PDO::PARAM_STR);
         $consulta->execute();
 
         return $consulta->fetchObject('Pedido');
     }
 
-    public static function modificarPedido($producto,$minutos)
+    public static function modificarPedidoEstadoMesa($codigo, $idEstadoMesa )
     {
-        if(is_int((int)$minutos))
-        {
-            date_default_timezone_set('America/Argentina/Buenos_Aires');
-            $ahora =  date ("Y-m-d H:i:s");
-            $fechaActual = new DateTime();
-            $fechaFin = $fechaActual->modify('+'.$minutos.' minute');
-
-            $objAccesoDato = AccesoDatos::obtenerInstancia();
-            //id_estado_pedido = 2 (EN PREPARACION)
-            $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET fecha_finalizacion = :fechaFin, fecha_actualizacion = :fechaAct, id_estado_pedido=2 WHERE codigo_pedido = :codigo");
-            $consulta->bindValue(':fechaFin', date_format($fechaFin, 'Y-m-d H:i:s'));
-            $consulta->bindValue(':fechaAct', $ahora, PDO::PARAM_STR);
-            $consulta->bindValue(':codigo', $producto, PDO::PARAM_STR);
-            $consulta->execute();
-        }
+        $objAccesoDato = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET id_estado_mesa = :idEstadoMesa WHERE codigo_pedido = :codigo");
+        $consulta->bindValue(':idEstadoMesa', $idEstadoMesa, PDO::PARAM_INT);
+        $consulta->bindValue(':codigo', $codigo, PDO::PARAM_STR);
+        $consulta->execute();
+        
     }
 
     // public static function borrarUsuario($usuario)
@@ -93,42 +73,6 @@ class Pedido
     }
     
 
-    public static function TraerIdMesa($codigoMesa)
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id FROM mesasdisponibles WHERE codigo_mesa = :codigo");
-        $consulta->bindValue(':codigo', $codigoMesa, PDO::PARAM_STR);
-        $consulta->execute();
-        $objetos = $consulta->fetchAll(PDO::FETCH_OBJ);
-
-        // DEVUELVO UN OBJETO CON KEYS = COLUMNAS DE LA CONSULTA
-
-        for ($i=0; $i < count($objetos); $i++) { 
-            foreach ($objetos[$i] as $key => $value) {
-                $id= $value;
-            }
-        }
     
-        return $id;
-    }
-
-    public static function TraerIdSector($nombreSector)
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id FROM sectores WHERE sector = :sector");
-        $consulta->bindValue(':sector', $nombreSector, PDO::PARAM_STR);
-        $consulta->execute();
-        $objetos = $consulta->fetchAll(PDO::FETCH_OBJ);
-
-        // DEVUELVO UN OBJETO CON KEYS = COLUMNAS DE LA CONSULTA
-
-        for ($i=0; $i < count($objetos); $i++) { 
-            foreach ($objetos[$i] as $key => $value) {
-                $id= $value;
-            }
-        }
-    
-        return $id;
-    }
 
 }

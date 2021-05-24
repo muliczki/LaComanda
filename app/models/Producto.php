@@ -5,14 +5,16 @@ class Producto
     public $id;
     public $nombre_producto;
     public $id_sector;
+    public $precio;
 
     public function crearProducto()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (nombre_producto,id_sector) 
-        VALUES ( :nombre,:idSector)");
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (nombre_producto,id_sector, precio) 
+        VALUES ( :nombre,:idSector, :precio)");
         $consulta->bindValue(':nombre', $this->nombre_producto, PDO::PARAM_STR);
         $consulta->bindValue(':idSector', $this->id_sector, PDO::PARAM_INT);
+        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_INT);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
@@ -21,7 +23,7 @@ class Producto
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre_producto,  id_sector FROM productos ");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre_producto,  id_sector, precio FROM productos ");
         $consulta->execute();
 
         return $consulta->fetchAll(PDO::FETCH_CLASS, 'Producto');
@@ -30,7 +32,7 @@ class Producto
     public static function obtenerProducto($nombre)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre_producto, id_sector FROM productos WHERE nombre_producto = :nombre");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre_producto, id_sector, precio FROM productos WHERE nombre_producto = :nombre");
         $consulta->bindValue(':nombre', $nombre, PDO::PARAM_STR);
         $consulta->execute();
 
@@ -67,23 +69,5 @@ class Producto
     // }
     
 
-    public static function TraerIdSector($nombreSector)
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id FROM sectores WHERE sector = :sector");
-        $consulta->bindValue(':sector', $nombreSector, PDO::PARAM_STR);
-        $consulta->execute();
-        $objetos = $consulta->fetchAll(PDO::FETCH_OBJ);
-
-        // DEVUELVO UN OBJETO CON KEYS = COLUMNAS DE LA CONSULTA
-
-        for ($i=0; $i < count($objetos); $i++) { 
-            foreach ($objetos[$i] as $key => $value) {
-                $id= $value;
-            }
-        }
-    
-        return $id;
-    }
 
 }

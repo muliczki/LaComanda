@@ -11,11 +11,13 @@ use Slim\Routing\RouteContext;
 
 require __DIR__ . '/../vendor/autoload.php';
 require_once './db/AccesoDatos.php';
-// require_once './middlewares/Logger.php';
+require_once './middlewares/Logger.php';
 
 require_once './controllers/PedidoController.php';
+require_once './controllers/DetallePedidoController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/UsuarioController.php';
+require_once './controllers/PersonaController.php';
 
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -37,9 +39,22 @@ $app->addErrorMiddleware(true, true, true);
 // Routes
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerTodos');
-  $group->get('/{codigoPedido}', \PedidoController::class . ':TraerUno');
   $group->post('[/]', \PedidoController::class . ':CargarUno');
   $group->put('[/]', \PedidoController::class . ':ModificarUno');
+
+  $group->get('/detalle[/]', \DetallePedidoController::class . ':TraerTodos');
+  $group->get('/detalle/{codigoPedido}', \DetallePedidoController::class . ':TraerUno');
+  $group->post('/detalle[/]', \DetallePedidoController::class . ':CargarUno');
+  
+  $group->get('/{codigoPedido}', \PedidoController::class . ':TraerUno');
+
+});
+
+
+$app->group('/siguiente', function (RouteCollectorProxy $group) {
+  //ok los dos
+  $group->post('[/]', \DetallePedidoController::class . ':TraerPrimerPendiente'); 
+  $group->put('[/]', \DetallePedidoController::class . ':ModificarUno');
 });
 
 $app->group('/productos', function (RouteCollectorProxy $group) {
@@ -49,7 +64,14 @@ $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->put('[/]', \ProductoController::class . ':ModificarUno');
 });
 
+$app->group('/personas', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \PersonaController::class . ':TraerTodos');
+  $group->get('/{email}', \PersonaController::class . ':TraerUno');
+  $group->post('[/]', \PersonaController::class . ':CargarUno');
+});
 
+$app->add(Logger::class . ':Verificar');
+$app->add(Logger::class . ':LogOperacion');
 
 // $app->get('[/]', function (Request $request, Response $response) {    
 //     $response->getBody()->write("Slim Framework 4 PHP");
