@@ -19,6 +19,10 @@ require_once './controllers/ProductoController.php';
 require_once './controllers/UsuarioController.php';
 require_once './controllers/PersonaController.php';
 
+require_once './models/AutentificadorJWT.php';
+require_once './middlewares/MWparaCORS.php';
+require_once './middlewares/MWparaAutentificar.php';
+
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
@@ -35,10 +39,11 @@ $app->addRoutingMiddleware();
 // Add error middleware
 $app->addErrorMiddleware(true, true, true);
 
+$app->add(\MWparaAutentificar::class . ':VerificarUsuario');
 
 // Routes
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
-  $group->get('[/]', \PedidoController::class . ':TraerTodos');
+  $group->get('[/]', \PedidoController::class . ':TraerTodos')->add(\MWparaCORS::class . ':HabilitarCORSTodos');
   $group->post('[/]', \PedidoController::class . ':CargarUno');
   $group->put('[/]', \PedidoController::class . ':ModificarUno');
 
@@ -70,8 +75,11 @@ $app->group('/personas', function (RouteCollectorProxy $group) {
   $group->post('[/]', \PersonaController::class . ':CargarUno');
 });
 
-$app->add(Logger::class . ':Verificar');
-$app->add(Logger::class . ':LogOperacion');
+
+//->add(\MWparaCORS::class . ':HabilitarCORS8080');
+
+// $app->add(Logger::class . ':Verificar');
+// $app->add(Logger::class . ':LogOperacion');
 
 // $app->get('[/]', function (Request $request, Response $response) {    
 //     $response->getBody()->write("Slim Framework 4 PHP");

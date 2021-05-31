@@ -62,15 +62,52 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function BorrarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
+      $parametros = $request->getParsedBody();
 
-        $usuarioId = $parametros['usuarioId'];
-        Usuario::borrarUsuario($usuarioId);
+      $usuarioId = $parametros['usuarioId'];
+      Usuario::borrarUsuario($usuarioId);
 
-        $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
+      $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      $response->getBody()->write($payload);
+      return $response
+        ->withHeader('Content-Type', 'application/json');
     }
+
+
+    public function Validar($request, $response, $args)
+    {
+      $parametros = $request->getParsedBody();
+
+      $usuario = $parametros['usuario'];
+      $clave = $parametros['clave'];
+
+      $idUsuario = ConsultasPdo::TraerIdPersona($usuario);
+            if($idUsuario!=0)
+            {
+                $idOcupacion = ConsultasPdo::TraerIdOcupacionPersona($idUsuario);
+                $ocupacion = ConsultasPdo::TraerDescOcupacion($idOcupacion);
+
+                $usuario = Usuario::obtenerUsuario($idUsuario);
+
+                if($usuario->clave == $clave) //USER EXISTE
+                {
+					// $datos = array('usuario' => $email,'perfil' => $ocupacion);
+					// $token= AutentificadorJWT::CrearToken($datos);
+
+                }else{
+                    echo "Error, clave incorrecta";
+                }
+            
+            }else{
+                echo "Error, email no registrado";
+            }
+
+      $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
+
+      $response->getBody()->write($payload);
+      return $response
+        ->withHeader('Content-Type', 'application/json');
+    }
+
 }
