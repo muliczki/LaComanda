@@ -6,7 +6,7 @@ use Slim\Psr7\Response;
 
 require_once './models/ConsultasPDO.php';
 require_once './models/Usuario.php';
-require_once './models/JwtTokens.php';
+// require_once './models/JwtTokens.php';
 
 class Logger
 {

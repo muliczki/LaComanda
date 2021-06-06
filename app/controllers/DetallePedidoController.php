@@ -3,7 +3,9 @@ require_once './models/DetallePedido.php';
 require_once './models/ConsultasPDO.php';
 require_once './interfaces/IApiUsable.php';
 
-class DetallePedidoController extends DetallePedido implements IApiUsable
+use \App\Models\DetallePedido as DetallePedido;
+
+class DetallePedidoController implements IApiUsable
 {
   public function CargarUno($request, $response, $args)
   {
@@ -20,7 +22,9 @@ class DetallePedidoController extends DetallePedido implements IApiUsable
     $detPedido->id_producto = $idProducto;
     $detPedido->id_estado_pedido = $idEstado;
     $detPedido->id_responsable = $idResponsable;
-    $detPedido->crearDetallePedido();
+    $detPedido->fecha_solicitud =  date ("Y-m-d H:i:s");
+    $detPedido->fecha_actualizacion =  date ("Y-m-d H:i:s");
+    $detPedido->save();
 
     $payload = json_encode(array("mensaje" => "Detalle Pedido cargado con exito"));
 
@@ -33,7 +37,16 @@ class DetallePedidoController extends DetallePedido implements IApiUsable
   {
     // Buscamos pedido por codigo
     $cod = $args['codigoPedido'];
-    $pedido = DetallePedido::obtenerDetallePedido($cod);
+
+    $pedido = DetallePedido::
+      join('pedidos', 'pedidos.id', '=','detallepedidos.id_codigo_pedido')->
+      join('productos', 'productos.id', '=','detallepedidos.id_producto')->
+      join('estadospedidos', 'estadospedidos.id', '=','detallepedidos.id_estado_pedido')->
+      join('personas', 'personas.id', '=','detallepedidos.id_responsable')->
+      select('detallepedidos.id', 'productos.nombre_producto', 'pedidos.codigo_pedido', 'estadospedidos.descripcion', 'personas.email')->
+      where('pedidos.codigo_pedido', '=', $cod)->
+      get()
+    ;
     $payload = json_encode($pedido);
     $response->getBody()->write($payload);
     return $response
@@ -42,7 +55,7 @@ class DetallePedidoController extends DetallePedido implements IApiUsable
 
   public function TraerTodos($request, $response, $args)
   {
-    $lista = DetallePedido::obtenerTodos();
+    $lista = DetallePedido::all();
     $payload = json_encode(array("listaDetallePedidos" => $lista));
       
     $response->getBody()->write($payload);
@@ -52,26 +65,26 @@ class DetallePedidoController extends DetallePedido implements IApiUsable
   
   public function ModificarUno($request, $response, $args)
   {
-    $parametros = $request->getParsedBody();
+    // $parametros = $request->getParsedBody();
 
-    $idDetalle = $parametros['idDetalle'];
-    $empleadoId = ConsultasPdo::TraerIdPersona($parametros['emailEmpleado']);
-    $idEstadoPedido = ConsultasPdo::TraerIdEstadoPedido($parametros['estadoPedidoActualizar']);
+    // $idDetalle = $parametros['idDetalle'];
+    // $empleadoId = ConsultasPdo::TraerIdPersona($parametros['emailEmpleado']);
+    // $idEstadoPedido = ConsultasPdo::TraerIdEstadoPedido($parametros['estadoPedidoActualizar']);
 
-    if(!is_null($parametros['minutos']))
-    {
-      $minutosRestantes = $parametros['minutos'];
-    }else{
-      $minutosRestantes = 0;
-    }
+    // if(!is_null($parametros['minutos']))
+    // {
+    //   $minutosRestantes = $parametros['minutos'];
+    // }else{
+    //   $minutosRestantes = 0;
+    // }
 
-    DetallePedido::modificarDetallePedido($idDetalle, $minutosRestantes, $empleadoId, $idEstadoPedido);
+    // DetallePedido::modificarDetallePedido($idDetalle, $minutosRestantes, $empleadoId, $idEstadoPedido);
 
-    $payload = json_encode(array("mensaje" => "Pedido ".$idDetalle. " actualizado con exito"));
+    // $payload = json_encode(array("mensaje" => "Pedido ".$idDetalle. " actualizado con exito"));
 
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
+    // $response->getBody()->write($payload);
+    // return $response
+    //   ->withHeader('Content-Type', 'application/json');
   }
 
   public function BorrarUno($request, $response, $args)

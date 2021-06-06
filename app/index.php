@@ -1,6 +1,7 @@
 <?php
 error_reporting(-1);
 ini_set('display_errors', 1);
+date_default_timezone_set('America/Argentina/Buenos_Aires');
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -8,20 +9,24 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Factory\AppFactory;
 use Slim\Routing\RouteCollectorProxy;
 use Slim\Routing\RouteContext;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
+#region Require
 require __DIR__ . '/../vendor/autoload.php';
 require_once './db/AccesoDatos.php';
 require_once './middlewares/Logger.php';
+require_once './middlewares/AutentificadorJWT.php';
 
 require_once './controllers/PedidoController.php';
 require_once './controllers/DetallePedidoController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/UsuarioController.php';
 require_once './controllers/PersonaController.php';
+require_once './classes/Jwt.php';
 
-require_once './models/AutentificadorJWT.php';
-require_once './middlewares/MWparaCORS.php';
-require_once './middlewares/MWparaAutentificar.php';
+// require_once './middlewares/MWparaCORS.php';
+// require_once './middlewares/MWparaAutentificar.php';
+#endregion
 
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -32,18 +37,36 @@ $app = AppFactory::create();
 // // Set base path
 // $app->setBasePath('/app');
 $app->setBasePath('/LaComanda/app');
-$app->addBodyParsingMiddleware();
-$app->addRoutingMiddleware();
-
 
 // Add error middleware
 $app->addErrorMiddleware(true, true, true);
+$app->addBodyParsingMiddleware();
+$app->addRoutingMiddleware();
+#endregion
 
-$app->add(\MWparaAutentificar::class . ':VerificarUsuario');
+#region Eloquent
+$container=$app->getContainer();
 
-// Routes
+$capsule = new Capsule;
+$capsule->addConnection([
+    'driver'    => 'mysql',
+    'host'      => $_ENV['MYSQL_HOST'],
+    'database'  => $_ENV['MYSQL_DB'],
+    'username'  => $_ENV['MYSQL_USER'],
+    'password'  => $_ENV['MYSQL_PASS'],
+    'charset'   => 'utf8',
+    'collation' => 'utf8_unicode_ci',
+    'prefix'    => '',
+]);
+
+$capsule->setAsGlobal();
+$capsule->bootEloquent();
+
+#endregion
+
+#region Routes
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
-  $group->get('[/]', \PedidoController::class . ':TraerTodos')->add(\MWparaCORS::class . ':HabilitarCORSTodos');
+  $group->get('[/]', \PedidoController::class . ':TraerTodos');
   $group->post('[/]', \PedidoController::class . ':CargarUno');
   $group->put('[/]', \PedidoController::class . ':ModificarUno');
 
@@ -74,17 +97,29 @@ $app->group('/personas', function (RouteCollectorProxy $group) {
   $group->get('/{email}', \PersonaController::class . ':TraerUno');
   $group->post('[/]', \PersonaController::class . ':CargarUno');
 });
-
+#endregion
 
 //->add(\MWparaCORS::class . ':HabilitarCORS8080');
 
 // $app->add(Logger::class . ':Verificar');
 // $app->add(Logger::class . ':LogOperacion');
 
-// $app->get('[/]', function (Request $request, Response $response) {    
-//     $response->getBody()->write("Slim Framework 4 PHP");
-//     return $response;
+$app->get('[/]', function (Request $request, Response $response) {    
+    $response->getBody()->write("La Comanda - Uliczki Micaela");
+    return $response;
+});
 
-// });
+
+$app->group('/jwt', function (RouteCollectorProxy $group) {
+  $group->post('/crearToken', \Jwt::class . ':CrearToken');
+  $group->get('/devolverPayLoad', \Jwt::class . ':DevolverPayload');
+  $group->get('/devolverDatos', \Jwt::class . ':DevolverDatos');
+  $group->get('/verificarToken', \Jwt::class . ':VerificarToken');
+
+});
+
+
+
+
 
 $app->run();

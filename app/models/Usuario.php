@@ -1,58 +1,29 @@
 <?php
 
-class Usuario
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Usuario extends Model
 {
     public $id;
     public $id_persona;
     public $clave;
 
-    public function crearUsuario()
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO usuarios (usuario, clave) VALUES (:usuario, :clave)");
-        $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
-        $consulta->bindValue(':usuario', $this->usuario, PDO::PARAM_STR);
-        $consulta->bindValue(':clave', $claveHash);
-        $consulta->execute();
+    use SoftDeletes;
 
-        return $objAccesoDatos->obtenerUltimoId();
-    }
+    protected $primaryKey = 'id';
+    protected $table = 'usuarios';
+    public $incrementing = true;
+    public $timestamps = false;
 
-    public static function obtenerTodos()
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, id_persona, clave FROM usuarios");
-        $consulta->execute();
+    const DELETED_AT = 'fecha_baja';
 
-        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Usuario');
-    }
+    protected $fillable = [
+        'id_persona', 'clave'
+    ];
 
-    public static function obtenerUsuario($idPersona)
-    {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, id_persona, clave FROM usuarios WHERE id_persona = :id");
-        $consulta->bindValue(':id', $idPersona, PDO::PARAM_INT);
-        $consulta->execute();
 
-        return $consulta->fetchObject('Usuario');
-    }
 
-    public function modificarUsuario()
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios SET clave = :clave WHERE id = :id");
-        $consulta->bindValue(':clave', $this->clave, PDO::PARAM_STR);
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
-    }
-
-    public static function borrarUsuario($usuario)
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios SET fechaBaja = :fechaBaja WHERE id = :id");
-        $fecha = new DateTime(date("d-m-Y"));
-        $consulta->bindValue(':id', $usuario, PDO::PARAM_INT);
-        $consulta->bindValue(':fechaBaja', date_format($fecha, 'Y-m-d H:i:s'));
-        $consulta->execute();
-    }
 }

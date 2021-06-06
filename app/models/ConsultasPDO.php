@@ -177,7 +177,12 @@ class ConsultasPdo{
         return $consulta->fetchAll(PDO::FETCH_OBJ);
     }
 
-
+    //CREAR CODIGO PEDIDO
+    public static function crearCodigoPedido()
+    {
+        $permitted_chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return substr(str_shuffle($permitted_chars), 0, 5);
+    }
 
     //no la use
     public static function traerUserPass($idPersona)

@@ -1,9 +1,13 @@
 <?php
 require_once './models/Producto.php';
+require_once './models/Sector.php';
 require_once './models/ConsultasPDO.php';
 require_once './interfaces/IApiUsable.php';
 
-class ProductoController extends Producto implements IApiUsable
+use \App\Models\Producto as Producto;
+use \App\Models\Sector as Sector;
+
+class ProductoController implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
@@ -11,14 +15,14 @@ class ProductoController extends Producto implements IApiUsable
 
       $nombreProducto = $parametros['nombreProducto'];
       $precio = $parametros['precio'];
-      $idSector = ConsultasPdo::TraerIdSector($parametros['sectorDesc']); 
+      $idSector = Sector::where('sector','=',$parametros['sectorDesc'])->get('id')[0]['id'];
 
       // Creamos el producto
       $producto = new Producto();
       $producto->nombre_producto = $nombreProducto;
       $producto->id_sector = $idSector;
       $producto->precio = $precio;
-      $producto->crearProducto();
+      $producto->save();
 
       $payload = json_encode(array("mensaje" => "Producto ". $nombreProducto ." agregado con exito"));
 
@@ -31,7 +35,7 @@ class ProductoController extends Producto implements IApiUsable
     {
       // Buscamos producto por nombre
       $nombre = $args['nombreProducto'];
-      $producto = Producto::obtenerProducto($nombre);
+      $producto = Producto::where('nombre_producto', $nombre)->first();
       $payload = json_encode($producto);
 
       $response->getBody()->write($payload);
@@ -41,7 +45,7 @@ class ProductoController extends Producto implements IApiUsable
 
     public function TraerTodos($request, $response, $args)
     {
-      $lista = Producto::obtenerTodos();
+      $lista = Producto::all();
       $payload = json_encode(array("listaProductos" => $lista));
 
       $response->getBody()->write($payload);

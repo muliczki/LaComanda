@@ -2,6 +2,8 @@
 require_once './models/Usuario.php';
 require_once './interfaces/IApiUsable.php';
 
+use \App\Models\Usuario as Usuario;
+
 class UsuarioController extends Usuario implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
@@ -15,7 +17,7 @@ class UsuarioController extends Usuario implements IApiUsable
         $usr = new Usuario();
         $usr->usuario = $usuario;
         $usr->clave = $clave;
-        $usr->crearUsuario();
+        $usr->save();
 
         $payload = json_encode(array("mensaje" => "Usuario creado con exito"));
 
