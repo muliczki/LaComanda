@@ -14,7 +14,6 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 #region Require
 require __DIR__ . '/../vendor/autoload.php';
 require_once './db/AccesoDatos.php';
-require_once './middlewares/Logger.php';
 require_once './middlewares/AutentificadorJWT.php';
 
 require_once './controllers/PedidoController.php';
@@ -90,6 +89,9 @@ $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->get('/{nombreProducto}', \ProductoController::class . ':TraerUno');
   $group->post('[/]', \ProductoController::class . ':CargarUno');
   $group->put('[/]', \ProductoController::class . ':ModificarUno');
+  $group->get('/subirCsv/{nombreArchivo}', \ProductoController::class . ':CargarCsv');
+  $group->get('/exportarCsv/{nombreArchivo}', \ProductoController::class . ':ExportarCsv');
+  $group->get('/exportarPdf/{nombreArchivo}', \ProductoController::class . ':ExportarPdf');
 });
 
 $app->group('/personas', function (RouteCollectorProxy $group) {
@@ -117,6 +119,7 @@ $app->group('/jwt', function (RouteCollectorProxy $group) {
   $group->get('/verificarToken', \Jwt::class . ':VerificarToken');
 
 });
+
 
 
 

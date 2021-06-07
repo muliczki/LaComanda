@@ -1,8 +1,11 @@
 <?php
 require_once './models/Usuario.php';
+require_once './models/Ocupacion.php';
+require_once './models/Persona.php';
 require_once './interfaces/IApiUsable.php';
 
 use \App\Models\Usuario as Usuario;
+use \App\Models\Persona as Persona;
 
 class UsuarioController extends Usuario implements IApiUsable
 {
@@ -77,39 +80,34 @@ class UsuarioController extends Usuario implements IApiUsable
     }
 
 
-    public function Validar($request, $response, $args)
+    public static function Validar($email, $clave)
     {
-      $parametros = $request->getParsedBody();
+      $idPersona = Persona::where('email','=',$email)->get('id');
+      var_dump($idPersona);
 
-      $usuario = $parametros['usuario'];
-      $clave = $parametros['clave'];
+      if(!is_null($idPersona) || !empty($idPersona))
+      {
+        $idUser = Usuario::where('id_persona','=',$idPersona[0]['id'])->where('clave','=',$clave)->get('id');
+          
+        if(!is_null($idUser) || !empty($idUser)){
+          $mensaje = TRUE;
+        }
+        else{
+          $mensaje= "Error, clave incorrecta";
+        }
+        
+      }else{
+        $mensaje = "Error, email no registrado";
+      }
+      
+      return $mensaje;
+      // $payload = json_encode(array("mensaje" => $mensaje));
 
-      $idUsuario = ConsultasPdo::TraerIdPersona($usuario);
-            if($idUsuario!=0)
-            {
-                $idOcupacion = ConsultasPdo::TraerIdOcupacionPersona($idUsuario);
-                $ocupacion = ConsultasPdo::TraerDescOcupacion($idOcupacion);
-
-                $usuario = Usuario::obtenerUsuario($idUsuario);
-
-                if($usuario->clave == $clave) //USER EXISTE
-                {
-					// $datos = array('usuario' => $email,'perfil' => $ocupacion);
-					// $token= AutentificadorJWT::CrearToken($datos);
-
-                }else{
-                    echo "Error, clave incorrecta";
-                }
-            
-            }else{
-                echo "Error, email no registrado";
-            }
-
-      $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
-
-      $response->getBody()->write($payload);
-      return $response
-        ->withHeader('Content-Type', 'application/json');
+      // $response->getBody()->write($payload);
+      // return $response
+      //   ->withHeader('Content-Type', 'application/json');
     }
+
+
 
 }
