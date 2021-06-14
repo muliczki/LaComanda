@@ -15,6 +15,7 @@ class Pedido extends Model
     public $timestamps = false;
 
     const DELETED_AT = 'fecha_baja';
+    const CREATED_AT = 'fecha_alta';
 
     protected $fillable = [
         'codigo_pedido', 'foto', 'id_mesa', 'id_estado_mesa', 'id_cliente'

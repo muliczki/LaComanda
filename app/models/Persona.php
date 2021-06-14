@@ -15,6 +15,7 @@ class Persona extends Model
     public $timestamps = false;
 
     const DELETED_AT = 'fecha_baja';
+    const CREATED_AT = 'fecha_registro';
 
     protected $fillable = [
         'nombre', 'apellido', 'email', 'id_sector', 'id_ocupacion', 'id_estado_empleado'

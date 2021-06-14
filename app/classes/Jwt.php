@@ -2,34 +2,15 @@
 
 use \App\Models\Ocupacion as Ocupacion;
 use \App\Models\Persona as Persona;
+require_once './middlewares/AutentificadorJWT.php';
 
 class Jwt 
 {
-  public function CrearToken($request, $response, $args)
+  public static function CrearToken($email, $perfil)
   {
-    $parametros = $request->getParsedBody();
-
-    $email = $parametros['email'];
-    $clave = $parametros['clave'];
-
-    $login = UsuarioController::Validar($email, $clave);
-
-    if($login == TRUE){
-      $idOcupacion = Persona::where('email','=',$email)->get('id_ocupacion')[0]['id_ocupacion'];
-      $ocupacion = Ocupacion::where('id','=',$idOcupacion)->get('ocupacion')[0]['ocupacion'];
-      
-      $datos = array('email' => $email, 'ocupacion' => $ocupacion);
-      $token = AutentificadorJWT::CrearToken($datos);
-      $payload = json_encode(array('jwt' => $token));
-
-    }else{
-      $payload = json_encode(array('mensaje' => $login));
-    }
-
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
-
+    $datos = array('email' => $email, 'perfil' => $perfil);
+    $token = AutentificadorJWT::CrearToken($datos);
+    return $token;
   }
 
   public function DevolverPayload ($request, $response, $args)
@@ -65,7 +46,7 @@ class Jwt
   }
   
 
-  public function VerificarToken ($request, $response, $args)
+  public static function VerificarToken ($request, $response)
   {
     $header = $request->getHeaderLine('Authorization');
     $token = trim(explode("Bearer", $header)[1]);
@@ -84,7 +65,7 @@ class Jwt
 
     $response->getBody()->write($payload);
     return $response
-        ->withHeader('Content-Type', 'application/json');
+      ->withHeader('Content-Type', 'application/json');
   }
 
 

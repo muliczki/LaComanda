@@ -7,10 +7,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Usuario extends Model
 {
-    public $id;
-    public $id_persona;
-    public $clave;
-
     use SoftDeletes;
 
     protected $primaryKey = 'id';

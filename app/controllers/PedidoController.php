@@ -1,9 +1,18 @@
 <?php
 require_once './models/Pedido.php';
-require_once './models/ConsultasPDO.php';
+require_once './models/Usuario.php';
+require_once './models/Persona.php';
+require_once './models/Mesa.php';
+require_once './models/EstadosMesa.php';
+require_once './models/CambiosEstadosMesa.php';
 require_once './interfaces/IApiUsable.php';
 
 use \App\Models\Pedido as Pedido;
+use \App\Models\Usuario as Usuario;
+use \App\Models\Persona as Persona;
+use \App\Models\Mesa as Mesa;
+use \App\Models\EstadosMesa as EstadosMesa;
+use \App\Models\CambiosEstadosMesa as CambiosEstadosMesa;
 
 //sacar la herencia del modelo!
 class PedidoController implements IApiUsable
@@ -12,20 +21,45 @@ class PedidoController implements IApiUsable
     {
       $parametros = $request->getParsedBody();
 
-      $codigoPedido = ConsultasPdo::crearCodigoPedido();
-      $foto = $parametros['foto']; //ver si es null
-      $idMesa = ConsultasPdo::TraerIdMesa($parametros['codigoMesa']); 
+      $codigoPedido = self::crearCodigoPedido();
+      
+      $mesa = Mesa::where("codigo_mesa", '=', $parametros['peticion']['codigoMesa'])->first();
       $idEstadoMesa = 1; //CLIENTE ESPERANDO PEDIDO
-      $idCliente = ConsultasPdo::TraerIdPersona($parametros['mailCliente']); 
+      $cliente = Persona::where("email", "=", $parametros['peticion']['mailCliente'])->first();
+      $empleado = Persona::where("email", "=", $parametros['dataToken']->email)->first();
+      $userEmpleado = Usuario::where("id_persona", "=", $empleado['id'])->first();
+
+      $uploadedFile = $request->getUploadedFiles()['foto'];
+      if ($uploadedFile->getError() === UPLOAD_ERR_OK) {
+        //ok foto
+        $filename = $codigoPedido.'.jpg';
+
+        $rutaFoto = "../app/files/photos/".$filename;
+        $uploadedFile->moveTo($rutaFoto);
+      }else{
+        //no subio foto o error
+        $rutaFoto = "";
+      }
 
       // Creamos el pedido
       $pedido = new Pedido();
       $pedido->codigo_pedido = $codigoPedido;
-      $pedido->foto = $foto;
-      $pedido->id_mesa = $idMesa;
+      $pedido->foto = $rutaFoto;
+      $pedido->id_mesa = $mesa['id'];
       $pedido->id_estado_mesa = $idEstadoMesa;
-      $pedido->id_cliente = $idCliente;
+      $pedido->id_cliente = $cliente['id'];
+      $pedido->fecha_alta = date("Y-m-d H:i:s");
       $pedido->save();
+
+
+      // cargo cambio en tabla de estados mesa
+      $cambioMesa = new CambiosEstadosMesa();
+      $cambioMesa->id_mesa = $mesa['id'];
+      $cambioMesa->id_codigo_pedido = $pedido->id;
+      $cambioMesa->id_usuario = $userEmpleado['id'];
+      $cambioMesa->id_estado_mesa = $idEstadoMesa;
+      $cambioMesa->fecha_cambio = date("Y-m-d H:i:s");
+      $cambioMesa->save();
 
       $payload = json_encode(array("mensaje" => "Pedido ". $codigoPedido ." creado con exito"));
 
@@ -63,31 +97,107 @@ class PedidoController implements IApiUsable
     
     public function ModificarUno($request, $response, $args)
     {
-      // $parametros = $request->getParsedBody();
+      $mensaje = "Datos incorrectos";
+      $parametros = $request->getParsedBody();
 
-      // $productoCodigo = $parametros['codigoPedido'];
-      // $idEstadoMesa = ConsultasPDO:: TraerIdEstadoMesa($parametros['descripEstadoMesa']);
+      $pedidoCodigo = $parametros['peticion']['codigoPedido'];
+      $estadoMesa = $parametros['peticion']['descripEstadoMesa'];
+      $email = $parametros['dataToken']->email;
+      $perfil = $parametros['dataToken']->perfil;
+      
+      $mesa = EstadosMesa:: where("descripcion", '=',$estadoMesa)->first();
+      //buscar mail y id user para pasarselo al cambio mesa
+      $persona = Persona:: where("email", '=',$email)->first();
+      $user = Usuario:: where("id_persona", '=',$persona['id'])->first();
+      
+      $pedido = Pedido::where("codigo_pedido", '=', $pedidoCodigo)->first();
+      $cambio = FALSE;
 
-      // Pedido::modificarPedidoEstadoMesa($productoCodigo, $idEstadoMesa);
+      if(!is_null($pedido) && !is_null($mesa))
+      {
+        if($estadoMesa == 'CERRADA')
+        {
+          if($perfil == 'SOCIO'){
+            $cambio = TRUE;
+          }else{
+            $mensaje = "Perfil NO autorizado para CERRAR mesa. Requiere SOCIO";
+          }
+        }else{
+          if($perfil == 'MOZO'){
+            $cambio = TRUE;
+          }else{
+            $mensaje = "Perfil NO autorizado. Requiere MOZO";
+          }
+        }
 
-      // $payload = json_encode(array("mensaje" => "Pedido ".$productoCodigo. " actualizado con exito"));
+        if($cambio)
+        {
+          $pedido->id_estado_mesa = $mesa['id'];
+          $pedido->save();
+          $mensaje = "Pedido actualizado con exito";
 
-      // $response->getBody()->write($payload);
-      // return $response
-      //   ->withHeader('Content-Type', 'application/json');
+          //cargo cambio en tabla de estados mesa
+          $cambioMesa = new CambiosEstadosMesa();
+          $cambioMesa->id_mesa = $pedido['id_mesa'];
+          $cambioMesa->id_codigo_pedido = $pedido['id'];
+          $cambioMesa->id_usuario = $user['id'];
+          $cambioMesa->id_estado_mesa = $mesa['id'];
+          $cambioMesa->fecha_cambio = date("Y-m-d H:i:s");
+          $cambioMesa->save();
+
+        }
+      }
+      // Pedido ".$productoCodigo. " actualizado con exito
+
+      $payload = json_encode(array("mensaje" => $mensaje));
+
+      $response->getBody()->write($payload);
+      return $response
+        ->withHeader('Content-Type', 'application/json');
     }
 
     public function BorrarUno($request, $response, $args)
     {
-        // $parametros = $request->getParsedBody();
+      $parametros = $request->getParsedBody();
+      $id = $args['id'];
+      // Buscamos el id
+      $item = Pedido::find($id);
 
-        // $usuarioId = $parametros['usuarioId'];
-        // Usuario::borrarUsuario($usuarioId);
+      $empleado = Persona::where("email", "=", $parametros['dataToken']->email)->first();
+      $userEmpleado = Usuario::where("id_persona", "=", $empleado['id'])->first();
 
-        // $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
+      
+      // Borramos si existe
+      if(!is_null($item)){
+        //cargo cambio en tabla de estados mesa
+        $cambioMesa = new CambiosEstadosMesa();
+        $cambioMesa->id_mesa = $item['id_mesa'];
+        $cambioMesa->id_codigo_pedido = $item['id'];
+        $cambioMesa->id_usuario = $userEmpleado['id'];
+        $cambioMesa->id_estado_mesa = 5; //CANCELADA
+        $cambioMesa->fecha_cambio = date("Y-m-d H:i:s");
+        $cambioMesa->save();
+        
+        $item->id_estado_mesa = 5;//CANCELADA
+        $item->save();
+        $item->delete();
+        $mensaje = "Item borrado con exito";
+      }else{
+        $mensaje = "El ID no existe";
+      }
+  
 
-        // $response->getBody()->write($payload);
-        // return $response
-        //   ->withHeader('Content-Type', 'application/json');
+      $payload = json_encode(array("mensaje" => $mensaje));
+  
+      $response->getBody()->write($payload);
+      return $response
+        ->withHeader('Content-Type', 'application/json');
+    }
+
+    //CREAR CODIGO PEDIDO
+    public static function crearCodigoPedido()
+    {
+      $permitted_chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      return substr(str_shuffle($permitted_chars), 0, 5);
     }
 }
