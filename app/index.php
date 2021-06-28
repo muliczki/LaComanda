@@ -13,7 +13,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 
 #region Require
 require __DIR__ . '/../vendor/autoload.php';
-require_once './db/AccesoDatos.php';
+// require_once './db/AccesoDatos.php';
 require_once './middlewares/AutentificadorJWT.php';
 require_once './middlewares/AccesosMD.php';
 
@@ -23,6 +23,7 @@ require_once './controllers/ProductoController.php';
 require_once './controllers/UsuarioController.php';
 require_once './controllers/PersonaController.php';
 require_once './controllers/EncuestaController.php';
+require_once './controllers/EstadisticaController.php';
 require_once './classes/Jwt.php';
 require_once './classes/Archivo.php';
 
@@ -71,8 +72,10 @@ $capsule->bootEloquent();
 $app->post('/login[/]', \UsuarioController::class . ':Login'); //para cualquier persona
 $app->post('/usuarios[/]', \UsuarioController::class . ':CargarUno'); //para cualquier persona
 
+$app->post('/detallePedido/{codigoPedido}', \DetallePedidoController::class . ':TraerUno')->add(\AccesosMD::class . ':VerificarCliente');
+
 $app->group('/encuestas', function (RouteCollectorProxy $group) {
-  $group->post('[/]', \EncuestaController::class . ':CargarUno');
+  $group->post('[/]', \EncuestaController::class . ':CargarUno');//para cualquier persona
   
   // todas lo puede ver socio
   $group->get('[/]', \EncuestaController::class . ':TraerTodos')->add(\AccesosMD::class . ':VerificarPerfilSocio')->add(\AccesosMD::class . ':VerificarUsuario');
@@ -124,7 +127,7 @@ $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->post('[/]', \ProductoController::class . ':CargarUno')->add(\AccesosMD::class . ':VerificarPerfilSocio');
   //put solo socio, modificar PRECIO
   $group->put('[/]', \ProductoController::class . ':ModificarUno')->add(\AccesosMD::class . ':VerificarPerfilSocio');
-  //put solo socio, borrar prodcto
+  //solo socio, borrar prodcto
   $group->delete('/{id}', \ProductoController::class . ':BorrarUno')->add(\AccesosMD::class . ':VerificarPerfilSocio');
   
   //exportar datos desde CSV de prodctos SOLO SOCIO
@@ -149,10 +152,34 @@ $app->group('/personas', function (RouteCollectorProxy $group) {
 })->add(\AccesosMD::class . ':VerificarPerfilSocio')->add(\AccesosMD::class . ':VerificarUsuario');
 
 
+//estadisticas SOLO SOCIOS
 $app->group('/estadisticas', function (RouteCollectorProxy $group) {
-  // $group->get('/empleados[/]', \PersonaController::class . ':TraerVentasEmpleado'); 
-  $group->get('/productos[/]', \VentaController::class . ':TraerProductoMasVendido'); 
-});
+  
+  $group->group('/empleados',function (RouteCollectorProxy $group){
+    $group->get('/logins[/]', \EstadisticaController::class . ':ListarLogins'); 
+    $group->get('/opSector[/]', \EstadisticaController::class . ':ListarOperacionesPorSector'); 
+    $group->get('/opSectorEmpleado[/]', \EstadisticaController::class . ':ListarOperacionesPorSectorEmpleado'); 
+    $group->get('/cantidadOpEmpleado[/]', \EstadisticaController::class . ':ListarCantidadOperacionesEmpleados'); 
+  });
+  $group->group('/pedidos',function (RouteCollectorProxy $group){
+    $group->get('/masVendido[/]', \EstadisticaController::class . ':ProductoMasVendido'); 
+    $group->get('/menosVendido[/]', \EstadisticaController::class . ':ProductoMenosVendido'); 
+    $group->get('/cancelados[/]', \EstadisticaController::class . ':ProductosCancelados'); 
+    $group->get('/factura/{pedido}', \EstadisticaController::class . ':ListarFacturaPedido'); 
+  });
+
+  $group->group('/mesas',function (RouteCollectorProxy $group){
+    $group->get('/masUsada[/]', \EstadisticaController::class . ':MesaMasUsada'); 
+    $group->get('/menosUsada[/]', \EstadisticaController::class . ':MesaMenosUsada'); 
+    $group->get('/masFacturacion[/]', \EstadisticaController::class . ':MasFacturacion'); 
+    $group->get('/menosFacturacion[/]', \EstadisticaController::class . ':MenosFacturacion'); 
+    $group->get('/mejorFactura[/]', \EstadisticaController::class . ':MejorFactura'); 
+    $group->get('/peorFactura[/]', \EstadisticaController::class . ':PeorFactura'); 
+    $group->get('/mejoresComentarios[/]', \EstadisticaController::class . ':MesaMejoresComentarios'); 
+    $group->get('/peoresComentarios[/]', \EstadisticaController::class . ':MesaPeoresComentarios'); 
+  });
+
+})->add(\AccesosMD::class . ':VerificarPerfilSocio')->add(\AccesosMD::class . ':VerificarUsuario');
 #endregion
 
 

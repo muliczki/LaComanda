@@ -53,7 +53,7 @@ class DetallePedidoController implements IApiUsable
     $cambioPedido->fecha_registro = date("Y-m-d H:i:s");
     $cambioPedido->save();
 
-    $payload = json_encode(array("mensaje" => "Detalle Pedido cargado con exito"));
+    $payload = json_encode(array("mensaje" => "Detalle Pedido " . $detPedido->id." cargado con exito"));
 
     $response->getBody()->write($payload);
     return $response
@@ -93,24 +93,30 @@ class DetallePedidoController implements IApiUsable
   public function ModificarUno($request, $response, $args)
   {
     $parametros = $request->getParsedBody();
-
     $idDetalle = $parametros['peticion']['idDetalle'];
-    $minutos = $parametros['peticion']['minutos'];
     $estadoPedidoAct = $parametros['peticion']['estadoPedidoActualizar'];
 
+    $idEstadoPedido = EstadosPedido::where("descripcion", "=", $estadoPedidoAct)->first();
     $empleado = Persona::where("email", "=", $parametros['dataToken']->email)->first();
     $userEmpleado = Usuario::where("id_persona", "=", $empleado['id'])->first();
     $fechaActual = new DateTime();
-    $fechaFin = $fechaActual->modify('+'.$minutos.' minute');
-    $idEstadoPedido = EstadosPedido::where("descripcion", "=", $estadoPedidoAct)->first();
-
     $detPedido = DetallePedido::where('id', "=", $idDetalle)->first();
     $detPedido->id_estado_pedido = $idEstadoPedido['id'];
     $detPedido->fecha_actualizacion = date("Y-m-d H:i:s");
-    $detPedido->fecha_estimada = $fechaFin;
     $detPedido->id_responsable = $empleado['id'];
-    $detPedido->save();
 
+    if($estadoPedidoAct == "EN PREPARACION"){
+      $minutos = $parametros['peticion']['minutos'];
+      $fechaFin = $fechaActual->modify('+'.$minutos.' minute');
+      $detPedido->fecha_estimada = $fechaFin;
+      
+    }else{
+
+      $detPedido->fecha_actualizacion = date("Y-m-d H:i:s");
+      $detPedido->fecha_finalizacion = date("Y-m-d H:i:s");
+    }
+    $detPedido->save();
+    
     // cargo cambio en tabla de estados pedidos
     $cambioPedido = new CambiosEstadosPedidos();
     $cambioPedido->id_codigo_pedido = $detPedido['id_codigo_pedido'];
